@@ -25,7 +25,7 @@ test('run in two workers', async (t) => {
 
     t.is(result1, 'worker:worker')
     t.is(result2, 'worker:worker')
-    t.is(duration < 1000, true)
+    t.is(duration < 1000, true, `duration was ${duration}`)
 
     console.log(`running by two workers took: `, duration)
   } finally {
@@ -56,7 +56,7 @@ test('run in one worker', async (t) => {
 
     t.is(result1, 'worker:worker')
     t.is(result2, 'worker:worker')
-    t.is(duration > 600, true)
+    t.is(duration > 600, true, `duration was ${duration}`)
 
     console.log(`running by one worker took: `, duration)
   } finally {
