@@ -27,7 +27,7 @@ impl DirectWorkerBundler {
       .map(|plugins| Arc::new(Mutex::new(plugins)))
       .collect();
     let plugins_list_len = plugins_list.len();
-    DirectWorkerBundler {
+    Self {
       plugins_list: Arc::new(RwLock::new(plugins_list.into_boxed_slice())),
       semaphore: Arc::new(Semaphore::new(plugins_list_len)),
     }
