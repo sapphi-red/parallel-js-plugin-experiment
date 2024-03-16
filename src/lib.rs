@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 
-pub mod bundler;
-pub mod bundler_creator;
+pub mod direct_worker_bundler;
+pub mod direct_worker_bundler_creator;
 pub mod plugins;
 
 #[macro_use]

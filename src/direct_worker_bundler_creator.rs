@@ -9,7 +9,7 @@ use std::{
 use napi::{bindgen_prelude::ObjectFinalize, Env, Error, Result};
 
 use crate::{
-  bundler::Bundler,
+  direct_worker_bundler::DirectWorkerBundler,
   plugins::{convert_plugins_to_thread_safe_plugins, Plugin, ThreadSafePlugin},
 };
 
@@ -22,13 +22,13 @@ lazy_static! {
 }
 
 #[napi(custom_finalize)]
-pub struct BundlerCreator {
+pub struct DirectWorkerBundlerCreator {
   #[napi(writable = false)]
   pub id: u16,
 }
 
 #[napi]
-impl BundlerCreator {
+impl DirectWorkerBundlerCreator {
   #[napi(constructor)]
   pub fn new() -> napi::Result<Self> {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
@@ -40,7 +40,7 @@ impl BundlerCreator {
   }
 
   #[napi(writable = false)]
-  pub fn create(&self) -> Result<Bundler> {
+  pub fn create(&self) -> Result<DirectWorkerBundler> {
     let mut map = PLUGINS_MAP.lock().unwrap();
     let plugins = map.remove(&self.id);
     if plugins.is_none() {
@@ -51,11 +51,11 @@ impl BundlerCreator {
     }
 
     let plugins = plugins.unwrap().into_inner().unwrap();
-    Ok(Bundler::new(plugins))
+    Ok(DirectWorkerBundler::new(plugins))
   }
 }
 
-impl ObjectFinalize for BundlerCreator {
+impl ObjectFinalize for DirectWorkerBundlerCreator {
   fn finalize(self, mut _env: Env) -> napi::Result<()> {
     let mut map = PLUGINS_MAP.lock().unwrap();
     map.remove(&self.id);

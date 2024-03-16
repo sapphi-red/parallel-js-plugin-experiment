@@ -295,8 +295,8 @@ if (!nativeBinding) {
   throw new Error(`Failed to load native binding`)
 }
 
-const { Bundler, BundlerCreator, registerPlugins } = nativeBinding
+const { DirectWorkerBundler, DirectWorkerBundlerCreator, registerPlugins } = nativeBinding
 
-module.exports.Bundler = Bundler
-module.exports.BundlerCreator = BundlerCreator
+module.exports.DirectWorkerBundler = DirectWorkerBundler
+module.exports.DirectWorkerBundlerCreator = DirectWorkerBundlerCreator
 module.exports.registerPlugins = registerPlugins

@@ -14,20 +14,20 @@ pub struct RunResult {
 }
 
 #[napi]
-pub struct Bundler {
+pub struct DirectWorkerBundler {
   plugins_list: Arc<RwLock<Box<[Arc<Mutex<Vec<ThreadSafePlugin>>>]>>>,
   semaphore: Arc<Semaphore>,
 }
 
 #[napi]
-impl Bundler {
+impl DirectWorkerBundler {
   pub fn new(plugins_list: Vec<Vec<ThreadSafePlugin>>) -> Self {
     let plugins_list: Vec<_> = plugins_list
       .into_iter()
       .map(|plugins| Arc::new(Mutex::new(plugins)))
       .collect();
     let plugins_list_len = plugins_list.len();
-    Bundler {
+    DirectWorkerBundler {
       plugins_list: Arc::new(RwLock::new(plugins_list.into_boxed_slice())),
       semaphore: Arc::new(Semaphore::new(plugins_list_len)),
     }

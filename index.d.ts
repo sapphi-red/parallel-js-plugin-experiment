@@ -12,12 +12,12 @@ export interface Plugin {
   name: string
   resolveId?: (source: string) => Promise<string | undefined>
 }
-export class Bundler {
+export class DirectWorkerBundler {
   getPluginCount(): Promise<number>
   run(count: number): Promise<RunResult>
 }
-export class BundlerCreator {
+export class DirectWorkerBundlerCreator {
   id: number
   constructor()
-  create(): Bundler
+  create(): DirectWorkerBundler
 }
