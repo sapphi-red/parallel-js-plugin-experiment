@@ -2,14 +2,14 @@ import test from 'ava'
 import { DirectWorkerBundlerCreator } from '../index.js'
 import { initWorkers } from './initDirectWorker.mjs'
 
-test('run in two workers (direct)', async (t) => {
+test('run in 8 workers (direct)', async (t) => {
   t.plan(4)
 
   const bundlerCreator = new DirectWorkerBundlerCreator()
   const id = bundlerCreator.id
 
-  const count = 10
-  const stopWorkers = await initWorkers(id, 100, 2)
+  const count = 300
+  const stopWorkers = await initWorkers(id, 2, 8)
 
   const bundler = bundlerCreator.create()
 
@@ -36,8 +36,8 @@ test('run in one worker (direct)', async (t) => {
   const bundlerCreator = new DirectWorkerBundlerCreator()
   const id = bundlerCreator.id
 
-  const count = 10
-  const stopWorkers = await initWorkers(id, 100, 1)
+  const count = 300
+  const stopWorkers = await initWorkers(id, 2, 1)
 
   const bundler = bundlerCreator.create()
 

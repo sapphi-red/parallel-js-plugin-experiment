@@ -2,11 +2,11 @@ import test from 'ava'
 import { SimpleBundler } from '../index.js'
 import { initWorkers } from './initIndirectWorker.mjs'
 
-test('run in two workers (indirect)', async (t) => {
+test('run in 8 workers (indirect)', async (t) => {
   t.plan(4)
 
-  const count = 10
-  const { stopWorkers, call } = await initWorkers(100, 2)
+  const count = 300
+  const { stopWorkers, call } = await initWorkers(2, 8)
 
   const bundler = new SimpleBundler([
     {
@@ -40,8 +40,8 @@ test('run in two workers (indirect)', async (t) => {
 test('run by main thread', async (t) => {
   t.plan(4)
 
-  const count = 10
-  const consumeDuration = 100
+  const count = 300
+  const consumeDuration = 2
   const bundler = new SimpleBundler([
     {
       name: 'worker',
