@@ -66,7 +66,7 @@ impl ObjectFinalize for DirectWorkerBundlerCreator {
 
 #[napi]
 pub fn register_plugins(id: u16, plugins: Vec<Plugin>) {
-  let plugins = convert_plugins_to_thread_safe_plugins(plugins);
+  let plugins = convert_plugins_to_thread_safe_plugins(None, plugins);
 
   let mut map = PLUGINS_MAP.lock().unwrap();
   if let Some(existing_plugins) = map.get_mut(&id) {

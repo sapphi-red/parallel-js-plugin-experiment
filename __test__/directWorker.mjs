@@ -2,7 +2,7 @@ import { parentPort, workerData } from 'node:worker_threads'
 import { registerPlugins } from '../index.js'
 
 const bundlerId = workerData.id
-const duration = workerData.duration
+const consumeDuration = workerData.duration
 
 registerPlugins(bundlerId, [
   {
@@ -11,7 +11,7 @@ registerPlugins(bundlerId, [
       if (id === 'worker') {
         // eat up the CPU for some time
         const now = Date.now()
-        while (now + duration > Date.now()) {}
+        while (now + consumeDuration > Date.now()) {}
 
         return 'worker:' + id
       }

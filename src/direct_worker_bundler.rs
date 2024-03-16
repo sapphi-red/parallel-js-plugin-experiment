@@ -5,13 +5,10 @@ use napi::tokio::{
   sync::{Mutex, MutexGuard, RwLock, Semaphore},
 };
 
-use crate::plugins::ThreadSafePlugin;
-
-#[napi(object)]
-pub struct RunResult {
-  pub len: u32,
-  pub result: String,
-}
+use crate::{
+  plugins::{resolve_id, ThreadSafePlugin},
+  result::RunResult,
+};
 
 #[napi]
 pub struct DirectWorkerBundler {
@@ -49,7 +46,7 @@ impl DirectWorkerBundler {
       let f = tokio::spawn(async move {
         let plugins_list = plugins_list.read().await;
         let plugins = get_plugins(&plugins_list).await.unwrap();
-        let result = resolve_id_internal(&plugins, "worker".to_string()).await;
+        let result = resolve_id(&plugins, "worker".to_string()).await;
         drop(permit);
         result
       });
@@ -77,16 +74,4 @@ async fn get_plugins(
     return Some(plugins);
   }
   None
-}
-
-async fn resolve_id_internal(plugins: &Vec<ThreadSafePlugin>, id: String) -> String {
-  for plugin in plugins.iter() {
-    if let Some(hook) = &plugin.resolve_id {
-      let resolved = hook.call_async(Ok(id.to_string())).await;
-      if let Ok(resolved) = resolved {
-        return resolved;
-      }
-    }
-  }
-  return "fallback".to_string();
 }
