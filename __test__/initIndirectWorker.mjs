@@ -50,7 +50,7 @@ const initWorker = async (name, duration) => {
  * @param {number} [count] number of workers
  * @returns {Promise<{
  *    call: (id: string) => Promise<string | undefined>,
- *    stopWorkers: Promise<() => Promise<void>>
+ *    stopWorkers: () => Promise<void>
  * }>}
  */
 export const initWorkers = async (duration, count) => {

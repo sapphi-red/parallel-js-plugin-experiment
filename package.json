@@ -28,6 +28,7 @@
     "build:debug": "napi build --platform",
     "prepublishOnly": "napi prepublish -t npm",
     "test": "vitest",
+    "bench": "node __test__/bench.mjs",
     "universal": "napi universal",
     "version": "napi version"
   },
