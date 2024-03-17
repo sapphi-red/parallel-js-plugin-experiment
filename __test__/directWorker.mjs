@@ -8,7 +8,7 @@ registerPlugins(bundlerId, [
   {
     name: 'worker',
     resolveId(_dummy, id) {
-      if (id === 'worker') {
+      if (id.startsWith('worker')) {
         // eat up the CPU for some time
         const now = Date.now()
         while (now + consumeDuration > Date.now()) {}

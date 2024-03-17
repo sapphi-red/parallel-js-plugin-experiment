@@ -5,7 +5,7 @@ const consumeDuration = workerData.duration
 parentPort.addListener('message', ({ id, rpcId }) => {
   /** @type {string | undefined} */
   let result
-  if (id === 'worker') {
+  if (id.startsWith('worker')) {
     // eat up the CPU for some time
     const now = Date.now()
     while (now + consumeDuration > Date.now()) {}

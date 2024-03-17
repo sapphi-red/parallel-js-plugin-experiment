@@ -1,52 +1,85 @@
-import test from 'ava'
+import { test, expect } from 'vitest'
 import { SimpleBundler } from '../index.js'
 import { initWorkers } from './initIndirectWorker.mjs'
+import config from './config.mjs'
 
-test('run in 8 workers (indirect)', async (t) => {
-  t.plan(4)
+const { consumeDuration, count, idLength, workerCount } = config
 
-  const count = 300
-  const { stopWorkers, call } = await initWorkers(2, 8)
+test.sequential(`run in ${workerCount} workers (indirect)`, async () => {
+  expect.assertions(3)
+
+  console.time('initialization (indirect, multiple)')
+  const { stopWorkers, call } = await initWorkers(consumeDuration, workerCount)
 
   const bundler = new SimpleBundler([
     {
       name: 'worker',
       async resolveId(_dummy, id) {
-        if (id === 'worker') {
+        if (id.startsWith('worker')) {
           const r = await call(id);
           return r
         }
       }
     }
   ])
+  console.timeEnd('initialization (indirect, multiple)')
 
   try {
-    t.is(await bundler.getPluginCount(), 1)
+    expect(await bundler.getPluginCount()).toBe(1)
 
-    const before = Date.now()
-    const result = await bundler.run(count)
-    const duration = Date.now() - before
+    console.time('run (indirect, multiple)')
+    const result = await bundler.run(count, idLength)
+    console.timeEnd('run (indirect, multiple)')
 
-    t.is(result.result, 'worker:worker')
-    t.is(result.len, count)
-    t.is(duration < 600, true, `duration was ${duration}`)
-
-    console.log(`running by two worker (indirect) took: `, duration)
+    expect(result.result.startsWith('worker:worker')).toBe(true)
+    expect(result.len).toBe(count)
   } finally {
     await stopWorkers()
   }
 })
 
-test('run by main thread', async (t) => {
-  t.plan(4)
+test.sequential(`run in one worker (indirect)`, async () => {
+  expect.assertions(3)
 
-  const count = 300
-  const consumeDuration = 2
+  console.time('initialization (indirect, single)')
+  const { stopWorkers, call } = await initWorkers(consumeDuration, 1)
+
+  const bundler = new SimpleBundler([
+    {
+      name: 'worker',
+      async resolveId(_dummy, id) {
+        if (id.startsWith('worker')) {
+          const r = await call(id);
+          return r
+        }
+      }
+    }
+  ])
+  console.timeEnd('initialization (indirect, single)')
+
+  try {
+    expect(await bundler.getPluginCount()).toBe(1)
+
+    console.time('run (indirect, single)')
+    const result = await bundler.run(count, idLength)
+    console.timeEnd('run (indirect, single)')
+
+    expect(result.result.startsWith('worker:worker')).toBe(true)
+    expect(result.len).toBe(count)
+  } finally {
+    await stopWorkers()
+  }
+})
+
+test.sequential('main thread', async () => {
+  expect.assertions(3)
+
+  console.time('initialization (main thread)')
   const bundler = new SimpleBundler([
     {
       name: 'worker',
       resolveId(_dummy, id) {
-        if (id === 'worker') {
+        if (id.startsWith('worker')) {
           // eat up the CPU for some time
           const now = Date.now()
           while (now + consumeDuration > Date.now()) {}
@@ -56,16 +89,14 @@ test('run by main thread', async (t) => {
       }
     }
   ])
+  console.timeEnd('initialization (main thread)')
 
-  t.is(await bundler.getPluginCount(), 1)
+  expect(await bundler.getPluginCount()).toBe(1)
 
-  const before = Date.now()
-  const result = await bundler.run(count)
-  const duration = Date.now() - before
+  console.time('run (main thread)')
+  const result = await bundler.run(count, idLength)
+  console.timeEnd('run (main thread)')
 
-  t.is(result.result, 'worker:worker')
-  t.is(result.len, count)
-  t.is(duration < 1200, true, `duration was ${duration}`)
-
-  console.log(`running by main thread took: `, duration)
+  expect(result.result.startsWith('worker:worker')).toBe(true)
+  expect(result.len).toBe(count)
 })

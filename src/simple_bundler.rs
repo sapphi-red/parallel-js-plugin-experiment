@@ -32,13 +32,13 @@ impl SimpleBundler {
   }
 
   #[napi]
-  pub async fn run(&self, count: u32) -> RunResult {
+  pub async fn run(&self, count: u32, id_length: u32) -> RunResult {
     let mut future_list = Vec::with_capacity(count as usize);
     for _ in 0..count {
       let plugins = self.plugins.clone();
       let f = tokio::spawn(async move {
         let plugins = plugins.read().await;
-        resolve_id(&plugins, "worker".to_string()).await
+        resolve_id(&plugins, "worker".repeat((id_length / 6) as usize)).await
       });
       future_list.push(f)
     }

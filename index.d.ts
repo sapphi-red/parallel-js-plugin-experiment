@@ -14,7 +14,7 @@ export interface RunResult {
 }
 export class DirectWorkerBundler {
   getPluginCount(): Promise<number>
-  run(count: number): Promise<RunResult>
+  run(count: number, idLength: number): Promise<RunResult>
 }
 export class DirectWorkerBundlerCreator {
   id: number
@@ -24,5 +24,5 @@ export class DirectWorkerBundlerCreator {
 export class SimpleBundler {
   constructor(plugins: Array<Plugin>)
   getPluginCount(): Promise<number>
-  run(count: number): Promise<RunResult>
+  run(count: number, idLength: number): Promise<RunResult>
 }

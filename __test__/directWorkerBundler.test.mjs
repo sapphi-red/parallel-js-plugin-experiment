@@ -1,58 +1,57 @@
-import test from 'ava'
+import { test, expect } from 'vitest'
 import { DirectWorkerBundlerCreator } from '../index.js'
 import { initWorkers } from './initDirectWorker.mjs'
+import config from './config.mjs'
 
-test('run in 8 workers (direct)', async (t) => {
-  t.plan(4)
+const { consumeDuration, count, idLength, workerCount } = config
 
+test.sequential(`run in ${workerCount} workers (direct)`, async () => {
+  expect.assertions(3)
+
+  console.time('initialization (direct, multiple)')
   const bundlerCreator = new DirectWorkerBundlerCreator()
   const id = bundlerCreator.id
 
-  const count = 300
-  const stopWorkers = await initWorkers(id, 2, 8)
+  const stopWorkers = await initWorkers(id, consumeDuration, workerCount)
 
   const bundler = bundlerCreator.create()
+  console.timeEnd('initialization (direct, multiple)')
 
   try {
-    t.is(await bundler.getPluginCount(), 1)
+    expect(await bundler.getPluginCount()).toBe(1)
 
-    const before = Date.now()
-    const result = await bundler.run(count)
-    const duration = Date.now() - before
+    console.time('run (direct, multiple)')
+    const result = await bundler.run(count, idLength)
+    console.timeEnd('run (direct, multiple)')
 
-    t.is(result.result, 'worker:worker')
-    t.is(result.len, count)
-    t.is(duration < 600, true, `duration was ${duration}`)
-
-    console.log(`running by two workers (direct) took: `, duration)
+    expect(result.result.startsWith('worker:worker')).toBe(true)
+    expect(result.len).toBe(count)
   } finally {
     await stopWorkers()
   }
 })
 
-test('run in one worker (direct)', async (t) => {
-  t.plan(4)
+test.sequential('run in one worker (direct)', async (t) => {
+  expect.assertions(3)
 
+  console.time('initialization (direct, single)')
   const bundlerCreator = new DirectWorkerBundlerCreator()
   const id = bundlerCreator.id
 
-  const count = 300
-  const stopWorkers = await initWorkers(id, 2, 1)
+  const stopWorkers = await initWorkers(id, consumeDuration, 1)
 
   const bundler = bundlerCreator.create()
+  console.timeEnd('initialization (direct, single)')
 
   try {
-    t.is(await bundler.getPluginCount(), 1)
+    expect(await bundler.getPluginCount()).toBe(1)
 
-    const before = Date.now()
-    const result = await bundler.run(count)
-    const duration = Date.now() - before
+    console.time('run (direct, single)')
+    const result = await bundler.run(count, idLength)
+    console.timeEnd('run (direct, single)')
 
-    t.is(result.result, 'worker:worker')
-    t.is(result.len, count)
-    t.is(duration < 1200, true, `duration was ${duration}`)
-
-    console.log(`running by one worker (direct) took: `, duration)
+    expect(result.result.startsWith('worker:worker')).toBe(true)
+    expect(result.len).toBe(count)
   } finally {
     await stopWorkers()
   }

@@ -38,7 +38,7 @@ impl DirectWorkerBundler {
   }
 
   #[napi]
-  pub async fn run(&self, count: u32) -> RunResult {
+  pub async fn run(&self, count: u32, id_length: u32) -> RunResult {
     let mut future_list = Vec::with_capacity(count as usize);
     for _ in 0..count {
       let plugins_list = self.plugins_list.clone();
@@ -46,7 +46,7 @@ impl DirectWorkerBundler {
       let f = tokio::spawn(async move {
         let plugins_list = plugins_list.read().await;
         let plugins = get_plugins(&plugins_list).await.unwrap();
-        let result = resolve_id(&plugins, "worker".to_string()).await;
+        let result = resolve_id(&plugins, "worker".repeat((id_length / 6) as usize)).await;
         drop(permit);
         result
       });
