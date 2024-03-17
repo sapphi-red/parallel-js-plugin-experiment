@@ -43,6 +43,8 @@ In contrast, in the direct implementation, the overhead doesn't exist. Not surpr
 
 In conclusion, in the indirect implementation, if the CPU time consumed by the hook is not long enough, the duration may increase even if a worker is used. However, in the direct implementation, the duration can be reduced by using a worker regardless of the time consumed by the hook.
 
+Precisely, even in the direct implementation, the overhead does exist. When "consume duration" is 0 and the number of workers are smaller than or equal to 4, it takes more time than simply running in the main thread. See the "run (consumeDuration: 0, count: 1000, idLength: 30)" result in the raw results below.
+
 #### Overhead of calling a hook with large data
 ![](./bench_results/output/run2.png)
 
@@ -67,6 +69,16 @@ initialize:
   direct (worker count: 4): 32.395ms
   direct (worker count: 8): 37.080ms
   direct (worker count: 16): 53.334ms
+run (consumeDuration: 0, count: 1000, idLength: 30):
+  main: 7.471ms
+  indirect (worker count: 1): 103.358ms
+  indirect (worker count: 4): 1457.120ms
+  indirect (worker count: 8): 3259.583ms
+  indirect (worker count: 16): 7218.530ms
+  direct (worker count: 1): 26.614ms
+  direct (worker count: 4): 7.710ms
+  direct (worker count: 8): 4.838ms
+  direct (worker count: 16): 3.093ms
 run (consumeDuration: 1, count: 1000, idLength: 30):
   main: 999.928ms
   indirect (worker count: 1): 1004.372ms

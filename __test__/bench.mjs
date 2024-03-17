@@ -29,6 +29,10 @@ await benchGroup('initialize', ({ bench }) => {
 
 const params = [
   {
+    consumeDuration: 0, // calls 1000 times in this case
+    idLengths: [30]
+  },
+  {
     consumeDuration: 1,
     idLengths: [30]
   },
@@ -47,7 +51,7 @@ const params = [
 ]
 
 for (const { consumeDuration, idLengths } of params) {
-  const count = Math.floor(1000 / consumeDuration)
+  const count = consumeDuration === 0 ? 1000 : Math.floor(1000 / consumeDuration)
   for (const idLength of idLengths) {
     await benchGroup(
       `run (consumeDuration: ${consumeDuration}, count: ${count}, idLength: ${idLength})`,
