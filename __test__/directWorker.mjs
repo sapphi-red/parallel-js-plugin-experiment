@@ -1,5 +1,6 @@
 import { parentPort, workerData } from 'node:worker_threads'
 import { registerPlugins } from '../index.js'
+import { setTimeout } from 'node:timers/promises'
 
 const bundlerId = workerData.id
 const consumeDuration = workerData.duration
@@ -7,11 +8,9 @@ const consumeDuration = workerData.duration
 registerPlugins(bundlerId, [
   {
     name: 'worker',
-    resolveId(_dummy, id) {
+    async resolveId(_dummy, id) {
       if (id.startsWith('worker')) {
-        // eat up the CPU for some time
-        const now = Date.now()
-        while (now + consumeDuration > Date.now()) {}
+        await setTimeout(consumeDuration)
 
         return 'worker:' + id
       }

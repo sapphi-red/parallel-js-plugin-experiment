@@ -1,5 +1,6 @@
 import { SimpleBundler } from '../index.js'
 import { initWorkers } from './initIndirectWorker.mjs'
+import { setTimeout } from 'node:timers/promises'
 
 /**
  * @param {number} consumeDuration
@@ -9,11 +10,9 @@ export const initializeMainThread = (consumeDuration) => {
   const bundler = new SimpleBundler([
     {
       name: 'worker',
-      resolveId(_dummy, id) {
+      async resolveId(_dummy, id) {
         if (id.startsWith('worker')) {
-          // eat up the CPU for some time
-          const now = Date.now()
-          while (now + consumeDuration > Date.now()) {}
+          await setTimeout(consumeDuration)
 
           return 'worker:' + id
         }
@@ -36,7 +35,7 @@ export const initializeIndirect = async (consumeDuration, workerCount) => {
       name: 'worker',
       async resolveId(_dummy, id) {
         if (id.startsWith('worker')) {
-          const r = await call(id);
+          const r = await call(id)
           return r
         }
       }

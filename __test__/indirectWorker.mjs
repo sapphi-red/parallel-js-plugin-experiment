@@ -1,14 +1,13 @@
 import { parentPort, workerData } from 'node:worker_threads'
+import { setTimeout } from 'node:timers/promises'
 
 const consumeDuration = workerData.duration
 
-parentPort.addListener('message', ({ id, rpcId }) => {
+parentPort.addListener('message', async ({ id, rpcId }) => {
   /** @type {string | undefined} */
   let result
   if (id.startsWith('worker')) {
-    // eat up the CPU for some time
-    const now = Date.now()
-    while (now + consumeDuration > Date.now()) {}
+    await setTimeout(consumeDuration)
 
     result = 'worker:' + id
   }

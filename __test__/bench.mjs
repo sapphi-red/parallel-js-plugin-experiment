@@ -51,7 +51,7 @@ const params = [
 ]
 
 for (const { consumeDuration, idLengths } of params) {
-  const count = consumeDuration === 0 ? 1000 : Math.floor(1000 / consumeDuration)
+  const count = consumeDuration === 0 ? 100 : Math.floor(100 / consumeDuration)
   for (const idLength of idLengths) {
     await benchGroup(
       `run (consumeDuration: ${consumeDuration}, count: ${count}, idLength: ${idLength})`,
