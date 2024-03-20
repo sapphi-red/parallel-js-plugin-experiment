@@ -4,16 +4,11 @@ import { Worker } from 'node:worker_threads'
  * @param {number} [id]
  * @param {number} [name]
  * @param {number} [duration] in milliseconds
- * @returns {Promise<import('node:worker_threads').Worker>}
+ * @returns {import('node:worker_threads').Worker}
  */
-export const initWorker = async (id, name, duration) => {
+const initWorker = (id, name, duration) => {
   const worker = new Worker(new URL('./directWorker.mjs', import.meta.url), {
     workerData: { id, name, duration }
-  })
-  await new Promise(resolve => {
-    worker.addListener('message', async () => {
-      resolve()
-    })
   })
   return worker
 }
@@ -22,13 +17,13 @@ export const initWorker = async (id, name, duration) => {
  * @param {number} [id]
  * @param {number} [duration] in milliseconds
  * @param {number} [count] number of workers
- * @returns {Promise<() => Promise<void>>}
+ * @returns {() => Promise<void>}
  */
-export const initWorkers = async (id, duration, count) => {
+export const initWorkers = (id, duration, count) => {
   /** @type {Array<import('node:worker_threads').Worker>} */
-  const workers = await Promise.all(Array.from({ length: count }, (_, i) =>
+  const workers = Array.from({ length: count }, (_, i) =>
     initWorker(id, i, duration)
-  ))
+  )
   return async () => {
     await Promise.all(workers.map(worker => worker.terminate()))
   }

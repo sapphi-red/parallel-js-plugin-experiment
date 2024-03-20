@@ -1,5 +1,9 @@
+use std::fmt::Debug;
+
 use napi::{
-  bindgen_prelude::Promise, threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction}, Either, Env, JsFunction, Result
+  bindgen_prelude::Promise,
+  threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction},
+  Either, Env, JsFunction, Result,
 };
 
 #[napi(object)]
@@ -14,8 +18,19 @@ pub struct ThreadSafePlugin {
   pub resolve_id: Option<ThreadsafeFunction<String>>,
 }
 
+impl Debug for ThreadSafePlugin {
+  fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
+    f.debug_struct("ThreadSafePlugin")
+      .field("name", &self.name)
+      .finish()
+  }
+}
+
 /// Only pass env when env is main thread
-pub fn convert_plugins_to_thread_safe_plugins(env: Option<&Env>, plugins: Vec<Plugin>) -> Vec<ThreadSafePlugin> {
+pub fn convert_plugins_to_thread_safe_plugins(
+  env: Option<&Env>,
+  plugins: Vec<Plugin>,
+) -> Vec<ThreadSafePlugin> {
   plugins
     .into_iter()
     .map(|p| ThreadSafePlugin {

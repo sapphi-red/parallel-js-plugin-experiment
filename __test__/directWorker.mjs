@@ -1,4 +1,4 @@
-import { parentPort, workerData } from 'node:worker_threads'
+import { workerData } from 'node:worker_threads'
 import { registerPlugins } from '../index.js'
 
 const bundlerId = workerData.id
@@ -18,5 +18,3 @@ registerPlugins(bundlerId, [
     }
   }
 ])
-
-parentPort.postMessage('')

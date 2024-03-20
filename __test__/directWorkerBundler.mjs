@@ -10,11 +10,11 @@ import { initWorkers } from './initDirectWorker.mjs'
  * }>}
  */
 export const initializeDirect = async (consumeDuration, workerCount) => {
-  const bundlerCreator = new DirectWorkerBundlerCreator()
+  const bundlerCreator = new DirectWorkerBundlerCreator(workerCount)
   const id = bundlerCreator.id
 
-  const stopWorkers = await initWorkers(id, consumeDuration, workerCount)
+  const stopWorkers = initWorkers(id, consumeDuration, workerCount)
 
-  const bundler = bundlerCreator.create()
+  const bundler = await bundlerCreator.create()
   return { bundler, stopWorkers }
 }

@@ -18,8 +18,8 @@ export class DirectWorkerBundler {
 }
 export class DirectWorkerBundlerCreator {
   id: number
-  constructor()
-  create(): DirectWorkerBundler
+  constructor(workerCount: number)
+  create(): Promise<DirectWorkerBundler>
 }
 export class SimpleBundler {
   constructor(plugins: Array<Plugin>)
