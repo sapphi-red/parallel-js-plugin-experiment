@@ -48,21 +48,25 @@ const initWorker = async (name, duration) => {
 /**
  * @param {number} [duration] in milliseconds
  * @param {number} [count] number of workers
+ * @param {{ beforeWaitWorker: () => void, afterWaitWorker: () => void }?} [hooks]
  * @returns {Promise<{
  *    call: (id: string) => Promise<string | undefined>,
  *    stopWorkers: () => Promise<void>
  * }>}
  */
-export const initWorkers = async (duration, count) => {
+export const initWorkers = async (duration, count, hooks) => {
   /**
-   * @type {Array<{
+   * @type {Promise<Array<{
    *    worker: import('node:worker_threads').Worker
    *    call: (id: string) => Promise<string | undefined>,
-   * }>}
+   * }>>}
    */
-  const workers = await Promise.all(Array.from({ length: count }, (_, i) =>
+  const workersPromise = Promise.all(Array.from({ length: count }, (_, i) =>
     initWorker(i, duration)
   ))
+  hooks?.beforeWaitWorker()
+  const workers = await workersPromise
+  hooks?.afterWaitWorker()
 
   const isRunning = workers.map(() => false)
   const runningPromises = workers.map(() => Promise.resolve())

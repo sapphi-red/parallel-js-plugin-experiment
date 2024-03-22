@@ -26,17 +26,18 @@ export const initializeMainThread = (consumeDuration) => {
 /**
  * @param {number} consumeDuration
  * @param {number} workerCount
+ * @param {{ beforeWaitWorker: () => void, afterWaitWorker: () => void }?} [hooks]
  * @returns {Promise<{ bundler: SimpleBundler, stopWorkers: () => Promise<void> }>}
  */
-export const initializeIndirect = async (consumeDuration, workerCount) => {
-  const { stopWorkers, call } = await initWorkers(consumeDuration, workerCount)
+export const initializeIndirect = async (consumeDuration, workerCount, hooks) => {
+  const { stopWorkers, call } = await initWorkers(consumeDuration, workerCount, hooks)
 
   const bundler = new SimpleBundler([
     {
       name: 'worker',
       async resolveId(_dummy, id) {
         if (id.startsWith('worker')) {
-          const r = await call(id);
+          const r = await call(id)
           return r
         }
       }

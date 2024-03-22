@@ -1,13 +1,25 @@
 import matplotlib.pyplot as plt
+import numpy as np
 
 def gen_init_graph():
   fig, ax = plt.subplots()
 
   types = ['A', 'B1', 'B4', 'B8', 'B16', 'C1', 'C4', 'C8', 'C16']
-  duration = [0.012, 25.351, 28.181, 32.109, 47.013, 30.457, 32.395, 37.080, 53.334]
+  duration = [0.013, 26.207, 29.304, 34.062, 51.233, 31.253, 34.196, 38.116, 57.307]
+  workerDuration = [0, 25.566, 28.197, 31.764, 46.026, 30.820, 33.201, 36.142, 52.613]
 
-  ax.bar(types, duration)
+  weight_counts = {
+    "CPU consumption\non main thread": np.array(duration) - np.array(workerDuration),
+    "Wating for worker": workerDuration,
+  }
+
+  bottom = np.zeros(len(types))
+  for label, weight_count in weight_counts.items():
+    ax.bar(types, weight_count, label=label, bottom=bottom)
+    bottom += weight_count
+
   ax.set_ylabel('Duration (ms)')
+  ax.legend()
   fig.savefig("./output/init.png")
 
 def gen_run_graph1():

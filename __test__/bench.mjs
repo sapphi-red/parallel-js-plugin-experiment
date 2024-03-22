@@ -8,20 +8,60 @@ await benchGroup('initialize', ({ bench }) => {
     initializeMainThread(1)
   })
 
+  const createWorkerWaitDurationCollector = () => {
+    let duration = 0
+    let count = 0
+    let before = 0
+    const hooks = {
+      beforeWaitWorker: () => {
+        before = performance.now()
+      },
+      afterWaitWorker: () => {
+        duration += performance.now() - before
+        count++
+      }
+    }
+    return { hooks, getResult: () => duration / count }
+  }
+
   for (const workerCount of workerCounts) {
-    bench(`indirect (worker count: ${workerCount})`, async () => {
-      const { stopWorkers } = await initializeIndirect(1, workerCount)
-      return async () => {
-        await stopWorkers()
+    let workerWaitdurationCollector
+    bench(`indirect (worker count: ${workerCount})`, {
+      setupAll: () => { workerWaitdurationCollector = createWorkerWaitDurationCollector() },
+      teardownAll: () => {
+        const result = workerWaitdurationCollector.getResult()
+        console.log(`    worker wait: ${result.toFixed(3)}ms`)
+      },
+      fn: async () => {
+        const { stopWorkers } = await initializeIndirect(
+          1,
+          workerCount,
+          workerWaitdurationCollector.hooks
+        )
+        return async () => {
+          await stopWorkers()
+        }
       }
     })
   }
 
   for (const workerCount of workerCounts) {
-    bench(`direct (worker count: ${workerCount})`, async () => {
-      const { stopWorkers } = await initializeDirect(1, workerCount)
-      return async () => {
-        await stopWorkers()
+    let workerWaitdurationCollector
+    bench(`direct (worker count: ${workerCount})`, {
+      setupAll: () => { workerWaitdurationCollector = createWorkerWaitDurationCollector() },
+      teardownAll: () => {
+        const result = workerWaitdurationCollector.getResult()
+        console.log(`    worker wait: ${result.toFixed(3)}ms`)
+      },
+      fn: async () => {
+        const { stopWorkers } = await initializeDirect(
+          1,
+          workerCount,
+          workerWaitdurationCollector.hooks
+        )
+        return async () => {
+          await stopWorkers()
+        }
       }
     })
   }
@@ -47,11 +87,12 @@ const params = [
   {
     consumeDuration: 10,
     idLengths: [30, 10000, 100000, 1000000]
-  },
+  }
 ]
 
 for (const { consumeDuration, idLengths } of params) {
-  const count = consumeDuration === 0 ? 1000 : Math.floor(1000 / consumeDuration)
+  const count =
+    consumeDuration === 0 ? 1000 : Math.floor(1000 / consumeDuration)
   for (const idLength of idLengths) {
     await benchGroup(
       `run (consumeDuration: ${consumeDuration}, count: ${count}, idLength: ${idLength})`,
@@ -87,7 +128,7 @@ for (const { consumeDuration, idLengths } of params) {
         }
 
         return async () => {
-          await Promise.all(teardowns.map(t => t()))
+          await Promise.all(teardowns.map((t) => t()))
         }
       }
     )
@@ -95,15 +136,22 @@ for (const { consumeDuration, idLengths } of params) {
 }
 
 /**
+ * @typedef {() => Promise<() => Promise<void> | undefined>} TaskFunction
+ */
+/**
+ * @typedef {{fn: TaskFunction, setupAll?: () => void, teardownAll?: () => void}} TaskOptions
+ */
+
+/**
  * @param {string} name
- * @param {(p: { bench: (name: string, fn: () => Promise<() => Promise<void> | undefined>) => Promise<void> }) => Promise<() => Promise<void> | undefined>} fn
+ * @param {(p: { bench: (name: string, fnOrObj: TaskFunction | TaskOptions) => Promise<void> }) => Promise<() => Promise<void> | undefined>} fn
  */
 async function benchGroup(name, fn) {
-  /** @type {Array<{ name: string, fn: () => Promise<() => Promise<void> | undefined> }>} */
+  /** @type {Array<{ name: string } & TaskOptions>} */
   const benchTasks = []
 
-  const bench = (name, fn) => {
-    benchTasks.push({ name, fn })
+  const bench = (name, fnOrObj) => {
+    benchTasks.push({ name, ...(typeof fnOrObj === 'function' ? { fn: fnOrObj } : fnOrObj) })
   }
 
   const groupTeardown = await fn({ bench })
@@ -113,6 +161,7 @@ async function benchGroup(name, fn) {
     /** @type {number[]} */
     const durations = []
     const count = 10
+    task.setupAll?.()
     for (let i = 0; i < count; i++) {
       const before = performance.now()
       const teardown = await task.fn()
@@ -124,6 +173,7 @@ async function benchGroup(name, fn) {
       .reduce((acc, v) => acc + v, 0)
 
     console.log(`  ${task.name}: ${duration.toFixed(3)}ms`)
+    task.teardownAll?.()
   }
 
   await groupTeardown?.()

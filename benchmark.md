@@ -30,7 +30,7 @@ The way I propose. Communicates directly between native binary and worker_thread
 ### Initialization duration
 ![](./bench_results/output/init.png)
 
-Initializing the workers takes up to 60ms. If we can get more reduction than 60ms, then it's worth to run some plugins in worker threads. However, 60 ms is a negligible amount of time for a project of a certain size.
+Initializing the workers takes up to 60ms. Most of the time is waiting for the worker to start and other tasks can be executed during that. The cpu time consumed on the main thread side is up to 6ms and that is negligible amount of time. So it's worth to run some plugins in worker threads.
 
 ### Time taken to call the plugin's hook from rust
 #### Overhead of calling a hook from multiple workers
@@ -60,15 +60,23 @@ In conclusion, the direct implementation reduces the overhead of calling a hook 
 
 ```
 initialize:
-  main thread: 0.012ms
-  indirect (worker count: 1): 25.351ms
-  indirect (worker count: 4): 28.181ms
-  indirect (worker count: 8): 32.109ms
-  indirect (worker count: 16): 47.013ms
-  direct (worker count: 1): 30.457ms
-  direct (worker count: 4): 32.395ms
-  direct (worker count: 8): 37.080ms
-  direct (worker count: 16): 53.334ms
+  main thread: 0.013ms
+  indirect (worker count: 1): 26.207ms
+    worker wait: 25.566ms
+  indirect (worker count: 4): 29.304ms
+    worker wait: 28.197ms
+  indirect (worker count: 8): 34.062ms
+    worker wait: 31.764ms
+  indirect (worker count: 16): 51.233ms
+    worker wait: 46.026ms
+  direct (worker count: 1): 31.253ms
+    worker wait: 30.820ms
+  direct (worker count: 4): 34.196ms
+    worker wait: 33.201ms
+  direct (worker count: 8): 38.116ms
+    worker wait: 36.142ms
+  direct (worker count: 16): 57.307ms
+    worker wait: 52.613ms
 run (consumeDuration: 0, count: 1000, idLength: 30):
   main: 7.471ms
   indirect (worker count: 1): 103.358ms
