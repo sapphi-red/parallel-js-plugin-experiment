@@ -38,7 +38,7 @@ impl SimpleBundler {
       let plugins = self.plugins.clone();
       let f = tokio::spawn(async move {
         let plugins = plugins.read().await;
-        resolve_id(&plugins, "worker".repeat((id_length / 6) as usize)).await
+        resolve_id(&plugins, "worker".repeat((id_length / 6) as usize), None).await
       });
       future_list.push(f)
     }

@@ -6,7 +6,7 @@
 export function registerPlugins(id: number, plugins: Array<Plugin>): void
 export interface Plugin {
   name: string
-  resolveId?: (source: string) => Promise<string | undefined>
+  resolveId?: (source: string, mainThreadProxy?: MainThreadProxy) => Promise<string | undefined>
 }
 export interface RunResult {
   len: number
@@ -18,8 +18,11 @@ export class DirectWorkerBundler {
 }
 export class DirectWorkerBundlerCreator {
   id: number
-  constructor()
+  constructor(cb?: (...args: any[]) => any | undefined | null)
   create(): DirectWorkerBundler
+}
+export class MainTheadProxy {
+  get foo(): string
 }
 export class SimpleBundler {
   constructor(plugins: Array<Plugin>)
