@@ -1,12 +1,11 @@
 use std::{
   collections::HashMap,
   sync::{
-    atomic::{AtomicU16, Ordering},
-    Mutex,
+    atomic::{AtomicU16, Ordering}, Arc, Mutex
   },
 };
 
-use napi::{bindgen_prelude::ObjectFinalize, Env, Error, Result};
+use napi::{bindgen_prelude::ObjectFinalize, threadsafe_function::{ErrorStrategy, ThreadSafeCallContext, ThreadsafeFunction}, Env, Error, JsFunction, Result};
 
 use crate::{
   direct_worker_bundler::DirectWorkerBundler,
@@ -25,18 +24,27 @@ lazy_static! {
 pub struct DirectWorkerBundlerCreator {
   #[napi(writable = false)]
   pub id: u16,
+
+  cb: Option<Arc<ThreadsafeFunction<String, ErrorStrategy::Fatal>>>,
 }
 
 #[napi]
 impl DirectWorkerBundlerCreator {
   #[napi(constructor)]
-  pub fn new() -> napi::Result<Self> {
+  pub fn new(cb: Option<JsFunction>) -> napi::Result<Self> {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     let mut map = PLUGINS_MAP.lock().unwrap();
     map.insert(id, Mutex::new(vec![]));
 
-    Ok(Self { id })
+    Ok(Self {
+      id,
+      cb: cb.map(|cb| {
+        Arc::new(cb.create_threadsafe_function(0, |ctx: ThreadSafeCallContext<String>| {
+          Ok(vec![ctx.value])
+        }).unwrap())
+      })
+    })
   }
 
   #[napi(writable = false)]
@@ -51,7 +59,7 @@ impl DirectWorkerBundlerCreator {
     }
 
     let plugins = plugins.unwrap().into_inner().unwrap();
-    Ok(DirectWorkerBundler::new(plugins))
+    Ok(DirectWorkerBundler::new(plugins, self.cb.clone()))
   }
 }
 

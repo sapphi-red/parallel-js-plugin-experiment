@@ -1,9 +1,9 @@
 use std::sync::Arc;
 
-use napi::tokio::{
+use napi::{threadsafe_function::{ErrorStrategy, ThreadsafeFunction}, tokio::{
   self,
   sync::{Mutex, MutexGuard, RwLock, Semaphore},
-};
+}};
 
 use crate::{
   plugins::{resolve_id, ThreadSafePlugin},
@@ -14,11 +14,13 @@ use crate::{
 pub struct DirectWorkerBundler {
   plugins_list: Arc<RwLock<Box<[Arc<Mutex<Vec<ThreadSafePlugin>>>]>>>,
   semaphore: Arc<Semaphore>,
+
+  cb: Option<Arc<ThreadsafeFunction<String, ErrorStrategy::Fatal>>>,
 }
 
 #[napi]
 impl DirectWorkerBundler {
-  pub fn new(plugins_list: Vec<Vec<ThreadSafePlugin>>) -> Self {
+  pub fn new(plugins_list: Vec<Vec<ThreadSafePlugin>>, cb: Option<Arc<ThreadsafeFunction<String, ErrorStrategy::Fatal>>>) -> Self {
     let plugins_list: Vec<_> = plugins_list
       .into_iter()
       .map(|plugins| Arc::new(Mutex::new(plugins)))
@@ -27,6 +29,7 @@ impl DirectWorkerBundler {
     Self {
       plugins_list: Arc::new(RwLock::new(plugins_list.into_boxed_slice())),
       semaphore: Arc::new(Semaphore::new(plugins_list_len)),
+      cb,
     }
   }
 
@@ -43,10 +46,11 @@ impl DirectWorkerBundler {
     for _ in 0..count {
       let plugins_list = self.plugins_list.clone();
       let permit = self.semaphore.clone().acquire_owned().await.unwrap();
+      let cb = self.cb.clone();
       let f = tokio::spawn(async move {
         let plugins_list = plugins_list.read().await;
         let plugins = get_plugins(&plugins_list).await.unwrap();
-        let result = resolve_id(&plugins, "worker".repeat((id_length / 6) as usize)).await;
+        let result = resolve_id(&plugins, "worker".repeat((id_length / 6) as usize), cb).await;
         drop(permit);
         result
       });
