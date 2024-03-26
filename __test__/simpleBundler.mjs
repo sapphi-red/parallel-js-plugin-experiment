@@ -9,7 +9,7 @@ export const initializeMainThread = (consumeDuration) => {
   const bundler = new SimpleBundler([
     {
       name: 'worker',
-      resolveId(_dummy, id) {
+      resolveId(id) {
         if (id.startsWith('worker')) {
           // eat up the CPU for some time
           const now = Date.now()
@@ -35,7 +35,7 @@ export const initializeIndirect = async (consumeDuration, workerCount, hooks) =>
   const bundler = new SimpleBundler([
     {
       name: 'worker',
-      async resolveId(_dummy, id) {
+      async resolveId(id) {
         if (id.startsWith('worker')) {
           const r = await call(id)
           return r

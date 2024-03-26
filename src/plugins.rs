@@ -1,5 +1,6 @@
 use napi::{
-  bindgen_prelude::Promise, threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction}, Either, Env, JsFunction, Result
+  bindgen_prelude::Promise, threadsafe_function::{ ThreadSafeCallContext, ThreadsafeFunction}, Either, Env, JsFunction, Result,
+  threadsafe_function::ErrorStrategy,
 };
 
 #[napi(object)]
@@ -11,7 +12,7 @@ pub struct Plugin {
 
 pub struct ThreadSafePlugin {
   pub name: String,
-  pub resolve_id: Option<ThreadsafeFunction<String>>,
+  pub resolve_id: Option<ThreadsafeFunction<String, ErrorStrategy::Fatal>>,
 }
 
 /// Only pass env when env is main thread
@@ -40,7 +41,7 @@ pub async fn resolve_id(plugins: &Vec<ThreadSafePlugin>, id: String) -> String {
   for plugin in plugins.iter() {
     if let Some(hook) = &plugin.resolve_id {
       let resolved: Result<Either<Promise<Option<String>>, Option<String>>> =
-        hook.call_async(Ok(id.clone())).await;
+        hook.call_async(id.clone()).await;
       if let Ok(resolved) = resolved {
         let resolved = match resolved {
           Either::A(resolved) => resolved.await.ok().flatten(),

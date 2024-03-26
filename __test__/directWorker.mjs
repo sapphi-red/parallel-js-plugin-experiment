@@ -7,7 +7,7 @@ const consumeDuration = workerData.duration
 registerPlugins(bundlerId, [
   {
     name: 'worker',
-    resolveId(_dummy, id) {
+    resolveId(id) {
       if (id.startsWith('worker')) {
         // eat up the CPU for some time
         const now = Date.now()
