@@ -1,6 +1,8 @@
 use napi::{
-  bindgen_prelude::Promise, threadsafe_function::{ ThreadSafeCallContext, ThreadsafeFunction}, Either, Env, JsFunction, Result,
+  bindgen_prelude::Promise,
   threadsafe_function::ErrorStrategy,
+  threadsafe_function::{ThreadSafeCallContext, ThreadsafeFunction},
+  Either, Env, JsFunction, Result,
 };
 
 #[napi(object)]
@@ -16,12 +18,15 @@ pub struct ThreadSafePlugin {
 }
 
 /// Only pass env when env is main thread
-pub fn convert_plugins_to_thread_safe_plugins(env: Option<&Env>, plugins: Vec<Plugin>) -> Vec<ThreadSafePlugin> {
+pub fn convert_plugins_to_thread_safe_plugins(
+  env: Option<&Env>,
+  plugins: Vec<Plugin>,
+) -> Vec<ThreadSafePlugin> {
   plugins
     .into_iter()
     .map(|p| ThreadSafePlugin {
       name: p.name,
-      resolve_id: p.resolve_id.and_then(|resolve_id| {
+      resolve_id: p.resolve_id.map(|resolve_id| {
         let mut func = resolve_id
           .create_threadsafe_function(0, |ctx: ThreadSafeCallContext<String>| {
             ctx.env.create_string(&ctx.value).map(|v| vec![v])
@@ -31,13 +36,13 @@ pub fn convert_plugins_to_thread_safe_plugins(env: Option<&Env>, plugins: Vec<Pl
           _ = func.unref(env);
         }
 
-        Some(func)
+        func
       }),
     })
     .collect()
 }
 
-pub async fn resolve_id(plugins: &Vec<ThreadSafePlugin>, id: String) -> String {
+pub async fn resolve_id(plugins: &[ThreadSafePlugin], id: String) -> String {
   for plugin in plugins.iter() {
     if let Some(hook) = &plugin.resolve_id {
       let resolved: Result<Either<Promise<Option<String>>, Option<String>>> =
@@ -53,5 +58,5 @@ pub async fn resolve_id(plugins: &Vec<ThreadSafePlugin>, id: String) -> String {
       }
     }
   }
-  return "fallback".to_string();
+  "fallback".to_string()
 }

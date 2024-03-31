@@ -16,7 +16,7 @@ use crate::{
 type PluginsInSingleWorker = Vec<ThreadSafePlugin>;
 
 lazy_static! {
-  static ref PLUGINS_MAP: Mutex<HashMap<u16, Mutex<Vec<PluginsInSingleWorker>>>> =
+  static ref PLUGINS_MAP: Mutex<HashMap<u16, Vec<PluginsInSingleWorker>>> =
     Mutex::new(HashMap::new());
   static ref NEXT_ID: AtomicU16 = AtomicU16::new(1);
 }
@@ -34,7 +34,7 @@ impl DirectWorkerBundlerCreator {
     let id = NEXT_ID.fetch_add(1, Ordering::Relaxed);
 
     let mut map = PLUGINS_MAP.lock().unwrap();
-    map.insert(id, Mutex::new(vec![]));
+    map.insert(id, vec![]);
 
     Ok(Self { id })
   }
@@ -50,7 +50,7 @@ impl DirectWorkerBundlerCreator {
       ));
     }
 
-    let plugins = plugins.unwrap().into_inner().unwrap();
+    let plugins = plugins.unwrap();
     Ok(DirectWorkerBundler::new(plugins))
   }
 }
@@ -70,6 +70,6 @@ pub fn register_plugins(id: u16, plugins: Vec<Plugin>) {
 
   let mut map = PLUGINS_MAP.lock().unwrap();
   if let Some(existing_plugins) = map.get_mut(&id) {
-    existing_plugins.lock().unwrap().push(plugins);
+    existing_plugins.push(plugins);
   }
 }

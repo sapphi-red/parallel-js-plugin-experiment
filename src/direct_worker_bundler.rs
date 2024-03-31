@@ -2,7 +2,7 @@ use std::sync::Arc;
 
 use napi::tokio::{
   self,
-  sync::{Mutex, MutexGuard, RwLock, Semaphore},
+  sync::{Mutex, MutexGuard, Semaphore},
 };
 
 use crate::{
@@ -10,9 +10,11 @@ use crate::{
   result::RunResult,
 };
 
+type PluginList = [Arc<Mutex<Vec<ThreadSafePlugin>>>];
+
 #[napi]
 pub struct DirectWorkerBundler {
-  plugins_list: Arc<RwLock<Box<[Arc<Mutex<Vec<ThreadSafePlugin>>>]>>>,
+  plugins_list: Arc<Box<PluginList>>,
   semaphore: Arc<Semaphore>,
 }
 
@@ -25,14 +27,14 @@ impl DirectWorkerBundler {
       .collect();
     let plugins_list_len = plugins_list.len();
     Self {
-      plugins_list: Arc::new(RwLock::new(plugins_list.into_boxed_slice())),
+      plugins_list: Arc::new(plugins_list.into_boxed_slice()),
       semaphore: Arc::new(Semaphore::new(plugins_list_len)),
     }
   }
 
   #[napi]
   pub async fn get_plugin_count(&self) -> u32 {
-    let plugins_list = self.plugins_list.read().await;
+    let plugins_list = self.plugins_list.clone();
     let plugins = plugins_list[0].lock().await;
     plugins.len() as u32
   }
@@ -44,7 +46,6 @@ impl DirectWorkerBundler {
       let plugins_list = self.plugins_list.clone();
       let permit = self.semaphore.clone().acquire_owned().await.unwrap();
       let f = tokio::spawn(async move {
-        let plugins_list = plugins_list.read().await;
         let plugins = get_plugins(&plugins_list).await.unwrap();
         let result = resolve_id(&plugins, "worker".repeat((id_length / 6) as usize)).await;
         drop(permit);
@@ -60,16 +61,14 @@ impl DirectWorkerBundler {
   }
 }
 
-async fn get_plugins(
-  plugins_list: &Box<[Arc<Mutex<Vec<ThreadSafePlugin>>>]>,
-) -> Option<MutexGuard<Vec<ThreadSafePlugin>>> {
+async fn get_plugins(plugins_list: &PluginList) -> Option<MutexGuard<Vec<ThreadSafePlugin>>> {
   for plugins in plugins_list.iter() {
     if let Ok(plugins) = plugins.try_lock() {
       return Some(plugins);
     }
   }
   // NOTE: this would not be called because semaphore exists
-  for plugins in plugins_list.iter() {
+  if let Some(plugins) = plugins_list.first() {
     let plugins = plugins.lock().await;
     return Some(plugins);
   }
