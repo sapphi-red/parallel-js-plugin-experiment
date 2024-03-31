@@ -7,6 +7,7 @@ use std::{
 };
 
 use napi::{bindgen_prelude::ObjectFinalize, Env, Error, Result};
+use once_cell::sync::Lazy;
 
 use crate::{
   direct_worker_bundler::DirectWorkerBundler,
@@ -15,11 +16,9 @@ use crate::{
 
 type PluginsInSingleWorker = Vec<ThreadSafePlugin>;
 
-lazy_static! {
-  static ref PLUGINS_MAP: Mutex<HashMap<u16, Vec<PluginsInSingleWorker>>> =
-    Mutex::new(HashMap::new());
-  static ref NEXT_ID: AtomicU16 = AtomicU16::new(1);
-}
+static PLUGINS_MAP: Lazy<Mutex<HashMap<u16, Vec<PluginsInSingleWorker>>>> =
+  Lazy::new(|| Mutex::new(HashMap::new()));
+static NEXT_ID: AtomicU16 = AtomicU16::new(1);
 
 #[napi(custom_finalize)]
 pub struct DirectWorkerBundlerCreator {
