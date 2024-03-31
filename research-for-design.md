@@ -4,32 +4,32 @@
 
 ### (A1) Metadata of a module
 
-An example for this is the content of a CSS file after the content is removed. `vite:css-post` removes the CSS file content in `transform` hook and generated a new file with `this.emitFile` to extract CSS content into a CSS file. Because this data is coupled with a specific module, it doesn't need to be shared among all threads. It only needs to be shared with a thread that processes that module. In this case, using [module `meta`](https://rollupjs.org/plugin-development/#custom-module-meta-data) is suitable. It has more limited flexibility than a shared cache, but that means there's more opportunity for optimization. It is worth noting that in many of these cases, data is written by the Build Hooks and read by the Output Generation Hooks.
+An example for this is the content of a CSS file after the content is removed. `vite:css-post` removes the CSS file content in the `transform` hook and outputs a new file with `this.emitFile` to extract the CSS content into a CSS file. Because this data is coupled with a specific module, it doesn't need to be shared with all threads. It only needs to be shared with a thread that processes that module. In this case, using [module `meta`](https://rollupjs.org/plugin-development/#custom-module-meta-data) is suitable. It has less flexibility than a shared cache, but that means there's more opportunity for optimization. It is worth noting that in many of these cases, the data is written by [the Build Hooks](https://rollupjs.org/plugin-development/#build-hooks) and read by [the Output Generation Hooks](https://rollupjs.org/plugin-development/#output-generation-hooks).
 
 Examples: `moduleCache` in `vite:css`/`vite:css-post`/`vite:css-analysis`, `styles` in `vite:css-post`, `resolved` in `vite:data-uri`/`@rollup/plugin-data-uri`, `htmlProxyMap`/`htmlProxyResult` in `vite:html`, `isAsyncScriptMap` in `vite:build-html`, `workerCache` in `vite:worker`/`vite:worker-import-meta-url`, `idToPackageInfo` in `@rollup/plugin-node-resolve`, `cssMap` in `ssr-styles`(nuxt), `generatedImages` in `vite-imagetools`, `tempFiles` in `vuetify:styles`, `extracted` in `rollup-plugin-postcss`, `dirs` in `rollup-plugin-polyfill-node`, `styles` in `rollup-plugin-import-css`, `extracted` in `rollup-plugin-styles`
 
 #### (A1a) Creating a module list
 
-Some plugins creates a list of modules in `transform` hook and uses that in `generateBundle` hook. For example, `vite:build-html` creates a list of HTML files and `@rollup/plugin-wasm` creates a list of Wasm files.
-This is possible to achieve by module `meta`, but it requires traversing all modules to get the list of module with that meta. It might be better to have an API that can get all modules with a specified metadata.
+Some plugins create a list of modules in the `transform` hook and use it in the `generateBundle` hook. For example, `vite:build-html` creates a list of HTML files and `@rollup/plugin-wasm` creates a list of Wasm files.
+This can be achieved by module `meta`, but it requires traversing all modules to get the list of modules with that meta. It might be better to have an API that can get all modules with a specified metadata.
 
 Examples: `processedHtml` in `vite:build-html`, `copies` in `@rollup/plugin-url`/`@rollup/plugin-wasm`, `facadeToLegacyChunkMap`/`facadeToLegacyChunkMap`/`facadeToModernPolyfillMap` in `@vitejs/plugin-legacy`, `workerFiles` in `rollup-plugin-off-the-main-thread`
 
 ### (A2) Metadata of a chunk
 
-An example of this is the CSS content associated with the chunk. Because this data is coupled with a specific chunk, it doesn't need to be shared among all threads. It only needs to be shared with a thread that processes that chunk. In this case, storing it in the chunk variable like [`chunk.viteMetadata`](https://github.com/vitejs/vite/blob/f1e67b6bdba07ce156ad4a8cb3b894603993ccd8/packages/vite/src/node/plugins/metadata.ts#L11-L14) is suitable.
+An example of this is the CSS content associated with the chunk. Because this data is coupled with a specific chunk, it doesn't need to be shared with all threads. It only needs to be shared with a thread that processes that chunk. In this case, storing it in the chunk variable such as [`chunk.viteMetadata`](https://github.com/vitejs/vite/blob/f1e67b6bdba07ce156ad4a8cb3b894603993ccd8/packages/vite/src/node/plugins/metadata.ts#L11-L14) is suitable.
 
 Examples: `pureCssChunks` in `vite:css-post`, `chunkCSSMap` in `vite:css-post`
 
 ### (A3) Metadata of an emitted file
 
-An example of this is the original file name of the emitted file. Because this data is coupled with an emitted file, it doesn't need to be shared among all threads. It only needs to be shared with a thread that processes that emitted file.
+An example of this is the original file name of the emitted file. Because this data is coupled with an emitted file, it doesn't need to be shared with all threads. It only needs to be shared with a thread that processes that emitted file.
 
 Example: `generatedAssets` in `vite:asset`
 
 ### (A4) Listening to events
 
-An event will be broadcasted over all threads, so the plugin need to handle it only on a single thread. We need to expose a worker thread number so that the plugin can only listen on a single thread.
+An event is broadcast across all threads, but in some cases the plugin only needs to handle it on a single thread. We need to expose a worker thread number so that the plugin can only listen on a single thread.
 
 Example: `server.watcher.on` usage in `@sveltejs/vite-plugin-svelte`
 
@@ -40,9 +40,9 @@ Adding an API to handle shared state can cover these patterns. It is worth notin
 Examples:
 
 - `VitePluginSvelteStats` in `@sveltejs/vite-plugin-svelte`
-  - It needs to aggregate the data among all threads.
+  - It needs to aggregate the data across all threads.
 - `browserMapCache` in `@rollup/plugin-node-resolve`
-  - This can be simply be thread safe if it gets the actual value when the cache didn't have a value. Another way is to use module `meta`.
+  - This can be simply be thread safe if it gets the actual value when the cache didn't have a value. Another way is to use the module `meta`.
 - `currentlyResolving` in `@rollup/plugin-commonjs`
   - I guess it's not thread safe. I have to read the commonjs plugin further to understand how it's used.
 
@@ -51,11 +51,11 @@ Examples:
 Examples:
 
 - `hasEmitted` in `vite:css-post`
-  - This variable is used to only output a file once among different output formats. If there's a way to store data associated to the whole bundle instance, it can be thread safe.
+  - This variable is used to output a file only once among different output formats. If there's a way to store data associated with the entire bundle instance, it can be thread-safe.
 - `manifest` in `vite:manifest`
   - This is similar to `hasEmitted` in `vite:css-post`. This variable is used to collect data from all bundles and output that data once on the last processed bundle.
 - `warnCache` in `ssr-styles`(nuxt)
-  - This Map is used to output the same warning only once. Vite's `logger` has `warnOnce` method, but Rollup only have `this.warn`.
+  - This Map is used to output the same warning only once. Vite's `logger` has a `warnOnce` method, but Rollup only has `this.warn`.
 
 #### (A5b) Single file component related
 
@@ -64,17 +64,17 @@ Examples:
 - `astroFileToCompileMetadataWeakMap` in `astro:build`
   - It seems it needs to be shared: https://github.com/withastro/astro/blob/498866c8f244144a670546d9261d76ca1c290251/packages/astro/src/vite-plugin-astro/index.ts#L71-L73
 - `cache`(SFC Descriptor cache)/`hmrCache`/`prevCache`/`clientCache`(script block cache)/`ssrCache`/`typeDepToSFCMap` in `@vitejs/plugin-vue`, `VitePluginSvelteCache` in `@sveltejs/vite-plugin-svelte`, `transformedOutputs` in `@builder.io/qwik`, `cachedSources` in `@marko/vite`
-  - plugin-vue heavily relies on the fact that it runs in a single thread and uses cache in many places. For example, `handleHotUpdate` uses the previous descriptor and the current descriptor. In this `handleHotUpdate` case, the same file needs to be always handled by the same worker to work. Another way is to storing the descriptor to the module `meta`; this only works if the descriptor is serializable though.
+  - plugin-vue relies heavily on the fact that it runs in a single thread and uses cache in many places. For example, `handleHotUpdate` uses the previous descriptor and the current descriptor. In this `handleHotUpdate` case, the same file always needs to be handled by the same worker to work. Another way is to store the descriptor in the module `meta`, but this only works if the descriptor is serializable.
 
 ### (A6) Plugins that runs heavy thread-unsafe functions
 
-ESLint and TypeScript are heavy, but cannot be parallelized efficiently. I guess running it in all threads will cause many duplicated work without not much improvement. In this case, I guess running in a single thread different from the main thread is effective. That would avoid duplicated work and reduce precious main thread CPU time.
+ESLint and TypeScript are heavy, but cannot be parallelized efficiently. I guess running it in all threads will cause a lot of duplicated work without not much improvement. In this case, I guess running it in a single thread different from the main thread is effective. This would avoid duplicated work and save precious main thread CPU time.
 
 Examples: `ESLint` in `@rollup/plugin-eslint`/`vite-plugin-eslint`, TypeScript in `@rollup/plugin-typescript`/`vite-plugin-dts`/`@joshwooding/vite-plugin-react-docgen-typescript`/`rollup-plugin-typescript2`/`rollup-plugin-dts`, vanilla-extract compiler in `@vanilla-extract/vite-plugin`, unocss context in `@unocss/vite`
 
 ### (A7) Direct plugin communication ([`api.*`](https://rollupjs.org/plugin-development/#direct-plugin-communication))
 
-There's two ways of using `api.*`. The first way is to expose a function or data under `api` and let other plugins access that. The second way is to tell other plugins to expose a function or data under `api` and access all plugins with that.
+There are two ways to use `api.*`. The first way is to expose a function or data under `api` and let other plugins access that. The second way is to tell other plugins to expose a function or data under `api` and access all plugins with that.
 
 Examples:
 
@@ -91,45 +91,45 @@ Examples:
 
 ### (A8) Config with non-serializable values
 
-Serializable values can be simply passed among threads, but non-serializable values (e.g. class, functions) are not. We can convert it into proxy objects, but I guess that would require complicated thread scheduling and increase parallelization overhead.
+Serializable values can be easily passed among threads, but non-serializable values (e.g. classes, functions) cannot. We can convert them into proxy objects, but I guess that would require complicated thread scheduling and increase the parallelization overhead.
 
 Examples: postcss plugins, babel plugins, functions in config, functions in plugin options
 
 ### (A9) Wrapping plugins
 
-`vite-plugin-inspect` wraps all the plugins. This is not possbile with parallel JS plugins and rust builtin plugins. I'm not sure how we can provide a way to inspect plugins without making it builtin.
+`vite-plugin-inspect` wraps all the plugins. This is not possible with parallel JS plugins and rust builtin plugins. I'm not sure how we can provide a way to inspect plugins without making it builtin.
 
 ### (A10) Vite core related things
 #### (A10a) Vite specific hooks
 
-Plugins often use [Vite specific hooks](https://vitejs.dev/guide/api-plugin.html#vite-specific-hooks) that doesn't exist in Rollup. Rolldown needs a way to run those hooks, otherwise plugins using Vite specific hooks cannot be a parallel JS plugin.
+Plugins often use [Vite specific hooks](https://vitejs.dev/guide/api-plugin.html#vite-specific-hooks) that don't exist in Rollup. Rolldown needs a way to execute these hooks, otherwise plugins using Vite specific hooks cannot be a parallel JS plugin.
 
 Vite specific hooks: `config`, `configResolved`, `configureServer`, `configurePreviewServer`, `transformIndexHtml`, `handleHotUpdate`
 
 #### (A10b) asset cache
 
-[`assetCache`](https://github.com/vitejs/vite/blob/f1e67b6bdba07ce156ad4a8cb3b894603993ccd8/packages/vite/src/node/plugins/asset.ts#L40) in `vite:asset` is difficult to make it thread safe in an easy way, because it requires sharing the state not only among the threads but also among multiple plugins. But this variable is highly intergrated to Vite core and I believe we don't need to consider this pattern that much. Also I guess we can use the `import.meta.ROLLUP_FILE_URL` feature in future.
+[`assetCache`](https://github.com/vitejs/vite/blob/f1e67b6bdba07ce156ad4a8cb3b894603993ccd8/packages/vite/src/node/plugins/asset.ts#L40) in `vite:asset` is difficult to make it thread-safe in an simple way, because it requires sharing the state not only among threads, but also among multiple plugins. But this variable is highly intergrated into Vite core and I believe we don't need to consider this pattern that much. Also, I guess we can use the `import.meta.ROLLUP_FILE_URL` feature in future.
 
 #### (A10c) module graph
 
-The module graph needs to be shared across the whole hooks/plugins. If we can put this in rolldown side, I guess it's not that difficult to make it possbile to access from parallel JS plugins.
+The module graph needs to be shared across the all hooks/plugins. If we can put this in rolldown side, I guess it's not that difficult to make it possbile to access from parallel JS plugins.
 
 #### (A10d) dep optimizer
 
-If we are going to make Vite internal plugins a parallel JS plugin, we'll need to make dep optimizer to be able to shared in multiple threads. I guess it's possbile by providing [channels](https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html), but I guess we would just migrate the plugin to rust when Vite gets rustified.
+If we are going to make Vite internal plugins a parallel JS plugin, we'll need to make dep optimizer to be able to share in multiple threads. I guess it's possible by providing [channels](https://doc.rust-lang.org/std/sync/mpsc/fn.channel.html), but I guess we would just migrate the plugin to rust when Vite gets rustified.
 
 ## Thread-safe usage patterns that are worth noting
 
 ### (B1) A cache that can be stored separately but better to be shared
 
 An example of these kinds of cache is a cache of which tsconfig is used in that file and what the resolved value of that tsconfig will be.
-In this case, it's fine to store the cache separately in each thread. Even if a value didn't exist in the cache, the plugin will check if the actual value and store that value in the cache. So it might fetch a same value for all threads in worst case scenario. If the overhead of sharing the value among threads is negligible (e.g. fetching the actual value takes time), it's better to have a shared cache.
+In this case, it's fine to store the cache separately in each thread. Even if a value doesn't exist in the cache, the plugin will check the actual value and store that value in the cache. So in worst case, it could fetch the same value for all threads . If the overhead of sharing the value among threads is negligible (e.g. fetching the actual value takes time), it's better to have a shared cache.
 
 Examples: `tsconfckCache` in `vite:esbuild`/`vite:esbuild-transpile`, `packageInfoCache` in `@rollup/plugin-node-resolve`, `assetsGeneratorContext.cache` in `vite-plugin-pwa`, `fileMap` in `vite-plugin-static-copy`, `mtimeCache` in `vite-plugin-compression`, `shareName2Prop` in `vite-plugin-federation`, `cache` in `vite-plugin-svg-icons`, `cache`(tsconfig) in `rollup-plugin-esbuild`
 
-### (B2) A maps storing HMR dependencies
+### (B2) A map storing HMR dependencies
 
-For example, if file `a.ts` should be reloaded if files in `./foo` directory is modified, the map has `"a.ts": "./foo"`. The plugin check the map when [`handleHotUpdate` hook](https://vitejs.dev/guide/api-plugin.html#handlehotupdate) is called. This is thread safe and doesn't require sharing states if `handleHotUpdate` hook is called in all threads.
+For example, if file `a.ts` should be reloaded when a file in `./foo` directory is modified, the map has `"a.ts": "./foo"`. The plugin check the map when [`handleHotUpdate` hook](https://vitejs.dev/guide/api-plugin.html#handlehotupdate) is called. This is thread-safe and doesn't require sharing state if `handleHotUpdate` hook is called in all threads.
 
 Examples: `config.dynamicRoutes.fileToModulesMap` in `vitepress:dynamic-routes`, `depToLoaderModuleIdMap`/`idToLoaderModulesMap` in `vitepress:data`, `modulesById` in `iles:documents`
 
