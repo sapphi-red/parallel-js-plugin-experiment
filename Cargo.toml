@@ -7,13 +7,13 @@ version = "0.0.0"
 crate-type = ["cdylib"]
 
 [dependencies]
-napi = { version = "2.16.0", default-features = false, features = ["async"] }
-napi-derive = "2.16.0"
+napi = { version = "2.16.1", default-features = false, features = ["async"] }
+napi-derive = "2.16.1"
 lazy_static = "1.4.0"
-futures = "0.3.29"
+futures = "0.3.30"
 
 [build-dependencies]
-napi-build = "2.0.1"
+napi-build = "2.1.2"
 
 [profile.release]
 lto = true
