@@ -86,6 +86,8 @@ Examples:
   - plugin-svelte reads `api.sveltePreprocess` object from all plugins. https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/faq.md#how-do-i-add-a-svelte-preprocessor-from-a-vite-plugin
 - `api.*` in `@builder.io/qwik`/`@builder.io/qwik-city`
   - qwik exposes many functions under `api`.
+    - qwik: [exposed](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik/src/optimizer/src/plugins/vite.ts#L78-L86), [used by qwik-city (1)](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/buildtime/vite/plugin.ts#L262-L263), [used by qwik-city (2)](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/adapters/shared/vite/index.ts#L121-L124)
+    - qwik-city: [exposed](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/buildtime/vite/plugin.ts#L50-L58), [used by qwik-city](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/adapters/shared/vite/index.ts#L119-L120)
 - `api.rakkas.*` in rakkas
   - It's called by rakkas: https://github.com/rakkasjs/rakkasjs/blob/d2c08c79007256366b3e03fc9542538d1681d507/packages/rakkasjs/src/vite-plugin/rakkas-plugins.ts#L7-L40
 
