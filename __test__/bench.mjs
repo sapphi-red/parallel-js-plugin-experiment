@@ -55,6 +55,7 @@ await benchGroup('initialize', ({ bench }) => {
       },
       fn: async () => {
         const { stopWorkers } = await initializeDirect(
+          'bench',
           1,
           workerCount,
           workerWaitdurationCollector.hooks
@@ -118,6 +119,7 @@ for (const { consumeDuration, idLengths } of params) {
 
         for (const workerCount of workerCounts) {
           const { bundler, stopWorkers } = await initializeDirect(
+            'bench',
             consumeDuration,
             workerCount
           )

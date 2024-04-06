@@ -7,6 +7,10 @@ export function registerPlugins(id: number, plugins: Array<Plugin>): void
 export interface Plugin {
   name: string
   resolveId?: (source: string) => Promise<string | undefined>
+  renderChunk?: (code: string, context: Context) => Promise<string | undefined>
+}
+export interface ModuleInfo {
+  meta: ProxyWrapper
 }
 export interface RunResult {
   len: number
@@ -15,11 +19,19 @@ export interface RunResult {
 export class DirectWorkerBundler {
   getPluginCount(): Promise<number>
   run(count: number, idLength: number): Promise<RunResult>
+  testMeta(count: number): Promise<RunResult>
 }
 export class DirectWorkerBundlerCreator {
   id: number
   constructor()
   create(): DirectWorkerBundler
+}
+export class Context {
+  getModuleInfo(id: string): ModuleInfo
+}
+export class Meta {
+  get(key: string): any
+  set(key: string, value: any): void
 }
 export class SimpleBundler {
   constructor(plugins: Array<Plugin>)
