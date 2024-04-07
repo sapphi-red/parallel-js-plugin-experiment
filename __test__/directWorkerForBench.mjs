@@ -2,7 +2,6 @@ import { parentPort, workerData } from 'node:worker_threads'
 import { registerPlugins } from '../index.js'
 
 const bundlerId = workerData.id
-const name = workerData.name
 const consumeDuration = workerData.duration
 
 registerPlugins(bundlerId, [
@@ -16,19 +15,8 @@ registerPlugins(bundlerId, [
 
         return 'worker:' + id
       }
-    },
-    renderChunk(code, context) {
-      const meta = context.getModuleInfo('foo').meta
-      meta.bar = name
     }
   },
-  {
-    name: 'worker2',
-    renderChunk(code, context) {
-      const meta = context.getModuleInfo('foo').meta
-      return '' + meta.bar
-    }
-  }
 ])
 
 parentPort.postMessage('')
