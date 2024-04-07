@@ -411,12 +411,27 @@ This is useful for plugins using (A7) pattern.
 
 ## Open questions
 
-I've not thought about these yet. I'm going to think about it.
-
 ### How can we handle (A8) pattern?
+
+- most configs are serializable
+- some of them accepts functions
+  - this would make the bundle bottlenecked by the main thread
+  - maybe we can serialize some simple ones
+    - marking the function as serializable by user?
+    - analysing the content with parser?
 
 ### How can we handle (A9) pattern?
 
+It's difficult to support and not common, so leave it for now.
+
 ### How can Vite use Rolldown? ((A10) pattern)
 
+Rolldown needs to expose some API to let Vite run hooks. Otherwise, Vite won't be able to call hooks for plugins running in a non-main thread. This would be a problem because many plugins expect `configResolved` hook to be called at least once to get the config value.
+
+A similar issue exists with `ssr` flag of `resolveId`/`load`/`transform` hooks (It'll be replaced with `this.environment` by the environment API PR, but that also has the same issue.). `scan` flag has the same issue, too. Vite injects that by [replacing all plugins hooks](https://github.com/vitejs/vite/blob/72cd3e367f8a0bbde9232ac264cfb4c2b07d9ad5/packages/vite/src/node/build.ts#L1000-L1070). This is no longer possible if a plugin runs in a non-main thread.
+
+Also Vite needs to expose the module graph and that needs to be shared across all threads instead of cloned. Rolldown needs to provide a way to do that.
+
 ### How well does [environment API](https://github.com/vitejs/vite/pull/16089) work with parallel plugins?
+
+To be considered.
