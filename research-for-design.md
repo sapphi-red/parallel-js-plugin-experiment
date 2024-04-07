@@ -79,17 +79,20 @@ There are two ways to use `api.*`. The first way is to expose a function or data
 Examples:
 
 - `api.reactBabel` in `@vitejs/plugin-react`
-  - plugin-react reads `api.reactBabel` method from all plugins. This method is used to manipulate babel options at module granularity. The method set by other plugins might be non thread safe.
+  - plugin-react reads `api.reactBabel` method from all plugins. This method is used to manipulate babel options at module granularity. The method set by other plugins might be non thread safe. The input of this function is mostly serializable and output is `undefined`.
 - `api.options` in `@sveltejs/vite-plugin-svelte`
-  - plugin-svelte allows the options to be changed by other plugins. It has a comment that this is only intended to be used for plugins in the same monorepo.
+  - plugin-svelte allows the options to be changed by other plugins. It has a comment that this is only intended to be used for plugins in the same monorepo. The value is serializable.
 - `api.sveltePreprocess` in `@sveltejs/vite-plugin-svelte`
-  - plugin-svelte reads `api.sveltePreprocess` object from all plugins. https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/faq.md#how-do-i-add-a-svelte-preprocessor-from-a-vite-plugin
+  - plugin-svelte reads `api.sveltePreprocess` object from all plugins. https://github.com/sveltejs/vite-plugin-svelte/blob/main/docs/faq.md#how-do-i-add-a-svelte-preprocessor-from-a-vite-plugin It receives functions so itself is not serializable. Both the input and output of the functions are serializable.
 - `api.*` in `@builder.io/qwik`/`@builder.io/qwik-city`
   - qwik exposes many functions under `api`.
     - qwik: [exposed](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik/src/optimizer/src/plugins/vite.ts#L78-L86), [used by qwik-city (1)](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/buildtime/vite/plugin.ts#L262-L263), [used by qwik-city (2)](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/adapters/shared/vite/index.ts#L121-L124)
+      - The input and output is serializable other than `createOptimizer`.
     - qwik-city: [exposed](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/buildtime/vite/plugin.ts#L50-L58), [used by qwik-city](https://github.com/BuilderIO/qwik/blob/1ad4dfb39cab53319ba5f796cae20f028640b691/packages/qwik-city/adapters/shared/vite/index.ts#L119-L120)
+      - The input and output is serializable.
 - `api.rakkas.*` in rakkas
   - It's called by rakkas: https://github.com/rakkasjs/rakkasjs/blob/d2c08c79007256366b3e03fc9542538d1681d507/packages/rakkasjs/src/vite-plugin/rakkas-plugins.ts#L7-L40
+      - The input and output is serializable.
 
 ### (A8) Config with non-serializable values
 
@@ -311,9 +314,11 @@ Some hooks will be called in all threads for a single plugin and some hooks will
 ```ts
 // my-thread-safe-plugin/plugin-implementation.ts
 import { SharedState } from 'rolldown'
+import type { ThreadSafePlugin, Context } from 'rolldown/plugin'
+export type Options = { foo: string }
 import { resolve } from 'heavy-resolve'
 
-export default (Options: Options, context: Context): ThreadSafePlugin => {
+export default (options: Options, context: Context): ThreadSafePlugin => {
   const resolveCache = context.createSharedState<string, string>('resolve')
 
   return {
@@ -362,12 +367,56 @@ impl SharedState {
 
 This is useful for plugins using (A5) or (B1) pattern.
 
+### Direct plugin communication ([`api.*`](https://rollupjs.org/plugin-development/#direct-plugin-communication))
+
+`api` should only contain a proxyable function or serializable value to be compatible with parallel JS plugins.
+Functions needs to be async to be marked as proxyable.
+
+When calling functions under `api` exposed by a parallel JS plugin, it will only be called in a single worker thread, because Vite doesn't know how to aggregate the result, different from hooks.
+
+```ts
+// my-thread-safe-plugin/plugin-implementation.ts
+import { SharedState } from 'rolldown'
+import type { Plugin } from 'rolldown'
+import type { ThreadSafePlugin, Context } from 'rolldown/plugin'
+
+// declared in rolldown
+type SerializedPlugin<T = unknown> = {
+  name: string,
+  // contains serialized value, or, proxied value
+  api: T
+}
+
+export default (options: undefined, context: Context): ThreadSafePlugin => {
+  return {
+    name: 'my-thread-safe-plugin',
+    buildStart(inputOptions) {
+      if (context.threadNumber === 0) {
+        const plugins: (Plugin | SerializedPlugin)[] = inputOptions.plugins.filter(p => p.api?.myThreadSafe)
+        for (const hook of plugins.map(p => p.api.myThreadSafe)) {
+          hook()
+        }
+      }
+    },
+    api: {
+      // mark this function as proxyable
+      foo: proxyableFunction(async () => 'foo'),
+      bar: { baz: 0 }
+    }
+  }
+}
+```
+
+This is useful for plugins using (A7) pattern.
+
 ## Open questions
 
 I've not thought about these yet. I'm going to think about it.
 
-- How can we handle (A7) pattern in parallel plugins? Also for builtin rust plugins.
-- How can we handle (A8) pattern?
-- How can we handle (A9) pattern?
-- How can Vite use Rolldown? ((A10) pattern)
-- How well does [environment API](https://github.com/vitejs/vite/pull/16089) work with parallel plugins?
+### How can we handle (A8) pattern?
+
+### How can we handle (A9) pattern?
+
+### How can Vite use Rolldown? ((A10) pattern)
+
+### How well does [environment API](https://github.com/vitejs/vite/pull/16089) work with parallel plugins?
